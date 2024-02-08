@@ -1,4 +1,6 @@
 import { FC, useCallback, useRef, useState } from 'react';
+import { faker } from '@faker-js/faker';
+
 import { useFixedSizeList } from '../hooks';
 
 /**
@@ -15,9 +17,9 @@ type TItem = {
 };
 
 /** Заполнение массива данными. */
-const items: TItem[] = Array.from({ length: 10_000 }, (_, index) => ({
+const items: TItem[] = Array.from({ length: 10_000 }, (_, __) => ({
 	id: Math.random().toString(36).slice(2),
-	text: String(index),
+	text: faker.lorem.text(),
 }));
 
 /** Высота элементов. */
@@ -34,11 +36,11 @@ export const List: FC = () => {
 
 	const scrollElementRef = useRef<HTMLDivElement>(null);
 
-	const { virtualItems, totalHeight, isScrolling } = useFixedSizeList({
-		itemHeight: ITEM_HEIGHT,
-		itemCount: listItems.length,
-		containerHeight: CONTAINER_HEIGHT,
+	const { virtualItems, totalHeight, isScrolling, measureElement } = useFixedSizeList({
+		estimateItemHeight: useCallback(() => 40, []),
+		getItemKey: useCallback(index => listItems[index]!.id, [listItems]),
 		getScrollElement: useCallback(() => scrollElementRef.current, []),
+		itemCount: listItems.length,
 		scrollingDelay: DELAY,
 		overscan: OVERSCAN,
 	});
@@ -71,14 +73,15 @@ export const List: FC = () => {
 						const item = listItems[virtualItem.index];
 						return (
 							<div
+								ref={measureElement}
+								data-index={virtualItem.index}
+								key={item.id}
 								style={{
-									height: ITEM_HEIGHT,
 									padding: '6px 12px',
 									position: 'absolute',
 									top: 0,
 									transform: `translateY(${virtualItem.offsetTop}px)`,
 								}}
-								key={item.id}
 							>
 								{isScrolling ? 'Scrolling...' : item.text}
 							</div>
