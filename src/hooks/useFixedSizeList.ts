@@ -5,7 +5,7 @@ type THookProps = {
 	/** количество всех элементов. */
 	itemCount: number;
 	/** Высота одного элемента. */
-	getItemHeight?: ( index: number ) => number;
+	measurementCache?: ( index: number ) => number;
 	/** Количество элементов накладываемая плюсом к отображаемым. */
 	overscan: number;
 	/** Задержка при скроллинге в милисекундах. */
@@ -30,9 +30,9 @@ type TVurtualItem = {
 
 /** Функция валидации пропсов. */
 function validationProps( props: THookProps ) {
-	const { getItemHeight, estimateItemHeight } = props;
+	const { measurementCache, estimateItemHeight } = props;
 
-	if( !getItemHeight && !estimateItemHeight ) {
+	if( !measurementCache && !estimateItemHeight ) {
 		throw new Error( 'Не передано ни одной функции для возвращения высоты элемента.' );
 	}
 }
@@ -42,7 +42,7 @@ export function useFixedSizeList( props: THookProps ) {
 	validationProps( props );
 	const {
 		itemCount,
-		getItemHeight,
+		measurementCache,
 		overscan,
 		scrollingDelay,
 		getScrollElement,
@@ -152,8 +152,8 @@ export function useFixedSizeList( props: THookProps ) {
 		
 		/** Функция возвращающая высоту элемента. */
 		const getItemHeightByIndex = (index: number) => {
-			if( getItemHeight ) {
-				return getItemHeight(index);
+			if( measurementCache ) {
+				return measurementCache(index);
 			}
 			const key = getItemKey( index );
 			if( typeof measerumentCache[ key ] === 'number' ) {
@@ -182,19 +182,28 @@ export function useFixedSizeList( props: THookProps ) {
 			allItems[ index ] = row;
 
 			if( startIndex === -1 && row.offsetTop + row.height > rangeStart ) {
-				startIndex = Math.max( index, index - overscan );
+				startIndex = Math.max( 0, index - overscan );
 			}
 
 			if( endIndex === -1 && row.offsetTop + row.height >= rangeEnd ) {
-				endIndex = Math.min( itemCount - 1, index + overscan );
-			}
+          		endIndex = Math.min( itemCount - 1, index + overscan );
+        	}
 		}
 
 		const virtualItems: TVurtualItem[] = allItems.slice( startIndex, endIndex + 1 );
 
 		return { virtualItems, startIndex, endIndex, allItems, totalHeight };
 
-	}, [ scrollTop, overscan, getItemHeight, estimateItemHeight, measerumentCache, itemCount ]);
+	}, [
+		scrollTop,
+		overscan,
+		listHeight,
+		measurementCache,
+		getItemKey,
+		estimateItemHeight,
+		measurementCache,
+		itemCount
+	]);
 
 	const measureElement = useCallback(( element: Element | null ) => {
 		if( !element ) {
